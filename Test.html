@@ -1,15 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+pipeline {
+    agent any
 
-    <Center><b>This is test Page 
-        
-    </b></Center>
-    
-</body>
-</html>
+    environment {
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-11.0.15.1" 
+        PATH = "${JAVA_HOME}\\bin;${env.PATH}"
+        TOMCAT_HOME = "C:\\Rays\\Server\\apache-tomcat-9.0.96"
+        DEPLOY_DIR = "${TOMCAT_HOME}\\webapps\\ROOT"
+        TOMCAT_URL = "http://localhost:8080"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/kanak8148/HtmlTest.git'
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                script {
+                    // Create deploy directory if not exists
+                    bat "if not exist \"${DEPLOY_DIR}\" mkdir \"${DEPLOY_DIR}\""
+
+                    // Copy HTML file
+                    bat "copy /Y index.html \"${DEPLOY_DIR}\\\""
+                }
+            }
+        }
+
+        stage('Restart Tomcat') {
+            steps {
+                script {
+                    bat "call \"${TOMCAT_HOME}\\bin\\shutdown.bat\" || echo Tomcat not running"
+                    bat "ping 127.0.0.1 -n 6 > nul" // Sleep 5 sec
+                    bat "call \"${TOMCAT_HOME}\\bin\\startup.bat\""
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment Successful!"
+            echo "🔗 Click here to open deployed page: ${TOMCAT_URL}"
+        }
+        failure {
+            echo "❌ Deployment Failed!"
+        }
+    }
+}
